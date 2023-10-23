@@ -4,7 +4,14 @@ This is a basic Golioth client library.
 
 ## Install
 
-Just install this package from source with following command:
+This package is not yet published in PyPI. It can be installed directly from GitHub with
+the following command:
+
+``` sh
+pip install git+https://github.com/golioth/python-golioth-cli
+```
+
+Alternatively you can clone this repo and then run the following at the repo root:
 
 ``` sh
 pip install .

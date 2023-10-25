@@ -8,7 +8,7 @@ This package is not yet published in PyPI. It can be installed directly from Git
 the following command:
 
 ``` sh
-pip install git+https://github.com/golioth/python-golioth-cli
+pip install git+https://github.com/golioth/python-golioth-tools@v0.1.0
 ```
 
 Alternatively you can clone this repo and then run the following at the repo root:

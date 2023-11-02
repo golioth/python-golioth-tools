@@ -21,6 +21,7 @@ dependencies = [
     "asyncclick",
     "colorama",
     "httpx",
+    "imgtool",
     "pyyaml",
     "rich",
     "trio",

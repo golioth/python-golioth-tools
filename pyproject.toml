@@ -18,18 +18,11 @@ classifiers = [
 ]
 dependencies = [
     "anyio",
-    "asyncclick",
-    "colorama",
     "httpx",
-    "imgtool",
     "pyyaml",
-    "rich",
     "trio",
     "trio-websocket",
 ]
-
-[project.scripts]
-golioth = "golioth.cli:main"
 
 [project.utils]
 "Homepage" = "https://github.com/golioth/golioth-zephyr-sdk"

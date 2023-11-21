@@ -11,7 +11,6 @@ import re
 from typing import Any, Callable, Dict, Iterable, Literal, Optional, Union
 
 import httpx
-import yaml
 from trio_websocket import open_websocket_url, WebSocketConnection
 
 
@@ -112,30 +111,18 @@ class ApiNodeMixin:
 
 class Client(ApiNodeMixin):
     def __init__(self,
-                 config_path: Optional[Union[Path, str]] = None,
-                 api_key: Optional[str] = None):
-        if not config_path:
-            config_path = Path.home() / '.golioth' / '.goliothctl.yaml'
-        elif isinstance(config_path, str):
-            config_path = Path(config_path)
+                 api_url: Optional[str] = "https://api.golioth.io",
+                 api_key: Optional[str] = None,
+                 access_token: Optional[str] = None):
 
-        self.config_path: Path = config_path
-        self.load_config()
-
-        url = self.config['apiurl']
-        self.base_url: str = f'{url}/v1'
+        self.base_url: str = f'{api_url}/v1'
 
         self.headers: Dict[str, str] = {}
 
-        if api_key is not None:
+        if api_key:
             self.headers['x-api-key'] = api_key
-        elif 'accesstoken' in self.config and \
-             (accesstoken := self.config['accesstoken']):
-            self.headers['authorization'] = f'bearer {accesstoken}'
-
-    def load_config(self):
-        with self.config_path.open('r') as fp:
-            self.config = yaml.load(fp, yaml.SafeLoader)
+        elif access_token:
+            self.headers['authorization'] = f'bearer {access_token}'
 
     async def get_projects(self) -> list[Project]:
         resp = await self.get('projects')
@@ -147,12 +134,6 @@ class Client(ApiNodeMixin):
                 return project
 
         raise ProjectNotFound(f'No project with name {name}')
-
-    async def default_project(self) -> Project:
-        project_id = self.config['projectid']
-
-        return await Project.get_by_id(self, project_id)
-
 
 class LightDBMonitor:
     ValueType = Union[str, int, float, bool, 'ValueType']

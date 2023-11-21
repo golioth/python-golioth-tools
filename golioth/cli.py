@@ -8,13 +8,14 @@ from pathlib import Path
 import re
 import sys
 from typing import Optional, Tuple, Union
+import yaml
 
 import asyncclick as click
 from colorama import init, Fore, Style
 from imgtool.image import Image, VerifyResult
 from rich.console import Console
 
-from golioth import Client, LogEntry, LogLevel, RPCTimeout
+from golioth import Client, LogEntry, LogLevel, Project, RPCTimeout
 
 create_set = set
 
@@ -22,20 +23,30 @@ console = Console()
 
 class Config:
     def __init__(self):
-        self.config_path: Optional[Path] = None
+        self.access_token: Optional[Path] = None
         self.api_key: Optional[str] = None
+        self.default_project: Optional[str] = None
+        self.api_url: Optional[str] = None
 
 pass_config = click.make_pass_decorator(Config, ensure=True)
 
 @click.group()
 @click.option('-c', '--config-path', type=Path,
-              help='Path to goliothctl configuration')
+              help='Path to goliothctl configuration',
+              default=Path.home() / '.golioth' / '.goliothctl.yaml')
 @click.option('--api-key', help='Api key')
 @pass_config
 def cli(config, config_path, api_key):
-    config.config_path = config_path
     config.api_key = api_key
 
+    with config_path.open('r') as fp:
+        config_dict = yaml.load(fp, yaml.SafeLoader)
+        if 'accesstoken' in config_dict:
+            config.access_token = config_dict['accesstoken']
+        if 'projectid' in config_dict:
+            config.default_project = config_dict['projectid']
+        if 'apiurl' in config_dict:
+            config.api_url = config_dict['apiurl']
 
 def rpc_params(params: str) -> Union[list, dict]:
     parsed = json.loads(params)
@@ -57,8 +68,8 @@ async def call(config, device_name, method, params):
 
     try:
         with console.status(f'Waiting for reply from method {method}...'):
-            client = Client(config.config_path, api_key=config.api_key)
-            project = await client.default_project()
+            client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+            project = await Project.get_by_id(client, config.default_project)
             # console.log(f'client: {client}')
             device = await project.device_by_name(device_name)
             # console.log(f'device: {device}')
@@ -115,8 +126,8 @@ async def upload(config, package, release_rollout, force, path):
     version = '.'.join([str(x) for x in version_bin[:3]])
 
     with console.status('Uploading DFU artifact...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         if force:
             artifacts_to_remove = create_set()
@@ -159,8 +170,8 @@ async def upload(config, package, release_rollout, force, path):
 async def list(config):
     """List DFU artifacts."""
     with console.status('Getting DFU artifacts...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         artifacts = await project.artifacts.get_all()
         for artifact in artifacts:
@@ -207,8 +218,8 @@ async def delete(config, artifact_id, by_package_version, match_type):
             return pattern.match(artifact.id) is not None
 
     with console.status('Getting DFU artifacts...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         patterns = [re.compile(match_type(x)) for x in artifact_id]
         deleted = []
@@ -239,8 +250,8 @@ def releases():
 async def create(config, artifact_ids, tags, rollout):
     """Create DFU release."""
     with console.status('Creating DFU release...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         await project.releases.create(artifact_ids, tags, rollout)
 
@@ -289,8 +300,8 @@ async def delete(config, release_id, by_tag, match_type):
             return pattern.match(release.id) is not None
 
     with console.status('Deleting DFU releases...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         patterns = [re.compile(match_type(r)) for r in release_id]
         deleted = []
@@ -312,8 +323,8 @@ async def delete(config, release_id, by_tag, match_type):
 async def list(config):
     """List DFU releases."""
     with console.status('Getting DFU releases...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         releases = await project.releases.get_all()
         for release in releases:
@@ -365,8 +376,8 @@ async def rollback(config, release_id, by_tag, match_type):
             return pattern.match(release.id) is not None
 
     with console.status('Rollback DFU releases...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         patterns = [re.compile(match_type(r)) for r in release_id]
         deleted = []
@@ -399,8 +410,8 @@ async def get(config, device_name, path):
     path = path.strip('/')
 
     with console.status('Getting LightDB State value...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
         device = await project.device_by_name(device_name)
 
         resp = await device.lightdb.get(path)
@@ -420,8 +431,8 @@ async def set(config, device_name, path, value):
     path = path.strip('/')
 
     with console.status('Setting LightDB State value...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
         device = await project.device_by_name(device_name)
 
         await device.lightdb.set(path, value)
@@ -438,8 +449,8 @@ async def delete(config, device_name, path):
     path = path.strip('/')
 
     with console.status('Deleting LightDB State value...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
         device = await project.device_by_name(device_name)
 
         await device.lightdb.delete(path)
@@ -456,8 +467,8 @@ async def monitor(config, device_name, path):
     path = path.strip('/')
 
     with console.status('Monitoring LightDB State path...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
         device = await project.device_by_name(device_name)
 
         async for value in device.lightdb.iter(path):
@@ -478,8 +489,8 @@ def stream():
 async def monitor(config, device_name):
     """Monitor LightDB Stream."""
     with console.status('Monitoring LightDB Stream path...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
         device = await project.device_by_name(device_name)
 
         async for value in device.stream.iter():
@@ -497,8 +508,8 @@ def certificate():
 async def list(config):
     """Get certificates."""
     with console.status('Getting certificates...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         certs = await project.certificates.get_all()
 
@@ -511,8 +522,8 @@ async def list(config):
 async def info(config, id):
     """Get certificate by ID."""
     with console.status('Getting certificate...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         resp = await project.certificates.get(id)
 
@@ -526,8 +537,8 @@ async def info(config, id):
 async def add(config, cert_type, cert_file):
     """Add certificate."""
     with console.status('Adding certificate...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         with cert_file.open('rb') as fp:
             resp = await project.certificates.add(cert_pem=fp.read(), cert_type=cert_type)
@@ -541,8 +552,8 @@ async def add(config, cert_type, cert_file):
 async def delete(config, id):
     """Delete certificate by ID."""
     with console.status(f'Deleting certificate {id}...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         resp = await project.certificates.delete(cert_id=id)
 
@@ -561,8 +572,8 @@ def device():
 async def info(config, name):
     """Get info about device."""
     with console.status(f'Getting device {name} info...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         device = await project.device_by_name(name)
 
@@ -574,8 +585,8 @@ async def info(config, name):
 async def list(config):
     """List all devices."""
     with console.status('Getting devices...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         devices = await project.get_devices()
 
@@ -659,8 +670,8 @@ def print_log_zephyr(log: LogEntry):
 @pass_config
 async def tail(config, device_name, follow, lines, format):
     """Show the most recent log entries."""
-    client = Client(config.config_path, api_key=config.api_key)
-    project = await client.default_project()
+    client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+    project = await Project.get_by_id(client, config.default_project)
 
     if device_name:
         device = await project.device_by_name(device_name)
@@ -695,8 +706,8 @@ async def get(config, key):
     """Get setting value of KEY."""
     try:
         with console.status(f'Getting setting value of {key}...'):
-            client = Client(config.config_path, api_key=config.api_key)
-            project = await client.default_project()
+            client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+            project = await Project.get_by_id(client, config.default_project)
 
             resp = await project.settings.get(key)
     except KeyError:
@@ -711,8 +722,8 @@ async def get(config, key):
 async def get_all(config):
     """Get all settings values."""
     with console.status('Getting settings...'):
-        client = Client(config.config_path, api_key=config.api_key)
-        project = await client.default_project()
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
 
         resp = await project.settings.get_all()
 
@@ -727,8 +738,8 @@ async def set(config, key, value):
     """Set setting value of KEY to VALUE."""
     try:
         with console.status(f'Setting {key} to {value}...'):
-            client = Client(config.config_path, api_key=config.api_key)
-            project = await client.default_project()
+            client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+            project = await Project.get_by_id(client, config.default_project)
 
             resp = await project.settings.set(key, value)
     except KeyError:
@@ -745,8 +756,8 @@ async def delete(config, key):
     """Delete KEY from settings."""
     try:
         with console.status(f'Deleting {key} from settings...'):
-            client = Client(config.config_path, api_key=config.api_key)
-            project = await client.default_project()
+            client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+            project = await Project.get_by_id(client, config.default_project)
 
             await project.settings.delete(key)
     except KeyError:

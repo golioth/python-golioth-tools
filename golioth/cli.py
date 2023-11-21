@@ -6,12 +6,11 @@ import fnmatch
 import json
 from pathlib import Path
 import re
-import sys
 from typing import Optional, Tuple, Union
 import yaml
 
 import asyncclick as click
-from colorama import init, Fore, Style
+from colorama import Fore, Style
 from imgtool.image import Image, VerifyResult
 from rich.console import Console
 

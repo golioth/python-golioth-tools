@@ -64,6 +64,10 @@ class RPCTimeout(RPCError):
     def __init__(self):
         super().__init__('RPC timeout')
 
+class SettingNotFound(ApiException):
+    def __init__(self):
+        super().__init__('Setting not found')
+
 
 class Forbidden(ApiException):
     def __init__(self, msg):
@@ -313,6 +317,7 @@ class Device(ApiNodeMixin):
         self.rpc = DeviceRPC(self)
         self.lightdb = DeviceLightDB(self)
         self.stream = DeviceStream(self)
+        self.settings = DeviceSettings(self)
 
     @property
     def headers(self) -> Dict[str, str]:
@@ -464,6 +469,73 @@ class DeviceRPC(ApiNodeMixin):
             return await self.call(name, params)
 
         return call_method
+
+class DeviceSettings(ApiNodeMixin):
+    def __init__(self, device: Device):
+        self.device = device
+        self.base_url: str = device.base_url
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        return self.device.headers
+
+    async def get_all(self) -> list:
+        response = await self.device.get('settings')
+        return response.json()['list']
+
+    async def get(self, key: str):
+        settings = await self.get_all()
+        for setting in settings:
+            if setting['key'] == key:
+                if 'deviceId' in setting:
+                    return setting
+
+        raise KeyError(f"No setting with {key=}")
+
+    async def set(self, key: str, value: Union[int, float, bool, str],
+                  override: bool = True):
+        if isinstance(value, int):
+            data_type = 'integer'
+        elif isinstance(value, float):
+            data_type = 'float'
+        elif isinstance(value, bool):
+            data_type = 'boolean'
+        elif isinstance(value, str):
+            data_type = 'string'
+        else:
+            raise RuntimeError("Invalid value type")
+
+        json = {
+            "key": key,
+            "dataType": data_type,
+            "value": value,
+            "deviceId": self.device.id,
+        }
+
+        if override:
+            try:
+                setting = await self.device.settings.get(key)
+                response = await self.device.project.put('settings/' + setting['id'], json=json)
+
+                return response.json()
+            except KeyError:
+                pass
+
+
+        # Ensure project-level setting exists - this will raise KeyError if not
+        setting = await self.device.project.settings.get(key)
+
+        response = await self.device.project.post('settings', json=json)
+
+        return response.json()
+
+    async def delete(self, key: str):
+        try:
+            setting = await self.get(key)
+            await self.device.project.delete('settings/' + setting['id'])
+        except KeyError:
+            pass
+
 
 
 class Certificate(ApiNodeMixin):

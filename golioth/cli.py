@@ -699,16 +699,22 @@ def settings():
 
 
 @settings.command()
+@click.option('-d', '--device-name',
+              help='Name of device')
 @click.argument('key')
 @pass_config
-async def get(config, key):
+async def get(config, device_name, key):
     """Get setting value of KEY."""
     try:
         with console.status(f'Getting setting value of {key}...'):
             client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
             project = await Project.get_by_id(client, config.default_project)
 
-            resp = await project.settings.get(key)
+            if device_name is not None:
+                device = await project.device_by_name(device_name)
+                resp = await device.settings.get(key)
+            else:
+                resp = await project.settings.get(key)
     except KeyError:
         console.print(f'No such setting with key {key}')
         return
@@ -717,30 +723,43 @@ async def get(config, key):
 
 
 @settings.command()
+@click.option('-d', '--device-name',
+              help='Name of device')
 @pass_config
-async def get_all(config):
+async def get_all(config, device_name):
     """Get all settings values."""
     with console.status('Getting settings...'):
         client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
         project = await Project.get_by_id(client, config.default_project)
 
-        resp = await project.settings.get_all()
+        if device_name is not None:
+            device = await project.device_by_name(device_name)
+            resp = await device.settings.get_all()
+        else:
+            resp = await project.settings.get_all()
 
         console.print(resp)
 
 
 @settings.command()
+@click.option('-d', '--device-name',
+              help='Name of device')
 @click.argument('key')
 @click.argument('value', type=json.loads)
 @pass_config
-async def set(config, key, value):
+async def set(config, device_name, key, value):
     """Set setting value of KEY to VALUE."""
     try:
         with console.status(f'Setting {key} to {value}...'):
             client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
             project = await Project.get_by_id(client, config.default_project)
 
-            resp = await project.settings.set(key, value)
+            if device_name is not None:
+                device = await project.device_by_name(device_name)
+                resp = await device.settings.set(key, value)
+            else:
+                resp = await project.settings.set(key, value)
+
     except KeyError:
         console.print(f'No such setting with key {key}')
         return
@@ -749,16 +768,23 @@ async def set(config, key, value):
 
 
 @settings.command()
+@click.option('-d', '--device-name',
+              help='Name of device')
 @click.argument('key')
 @pass_config
-async def delete(config, key):
+async def delete(config, device_name, key):
     """Delete KEY from settings."""
     try:
         with console.status(f'Deleting {key} from settings...'):
             client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
             project = await Project.get_by_id(client, config.default_project)
 
-            await project.settings.delete(key)
+            if device_name is not None:
+                device = await project.device_by_name(device_name)
+                await device.settings.delete(key)
+            else:
+                await project.settings.delete(key)
+
     except KeyError:
         console.print(f'No such setting with key {key}')
         return

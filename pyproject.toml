@@ -15,6 +15,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
+    "Framework :: Pytest",
 ]
 dependencies = [
     "anyio",
@@ -34,3 +35,6 @@ golioth = "golioth.cli:main"
 [project.utils]
 "Homepage" = "https://github.com/golioth/golioth-zephyr-sdk"
 "Bug Tracker" = "https://github.com/golioth/golioth-zephyr-sdk/issues"
+
+[project.entry-points.pytest11]
+golioth = "golioth.pytest_plugin"

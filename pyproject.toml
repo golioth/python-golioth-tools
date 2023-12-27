@@ -6,7 +6,8 @@ build-backend = "hatchling.build"
 name = "golioth"
 version = "0.2.0"
 authors = [
-    { name="Marcin Niestroj", email="m.niestroj@emb.dev" }
+    { name="Marcin Niestroj", email="m.niestroj@emb.dev" },
+    { name="Sam Friedman", email="sam@golioth.io" }
 ]
 description = "Golioth client Python library"
 license = "Apache-2.0"
@@ -33,8 +34,8 @@ dependencies = [
 golioth = "golioth.cli:main"
 
 [project.utils]
-"Homepage" = "https://github.com/golioth/golioth-zephyr-sdk"
-"Bug Tracker" = "https://github.com/golioth/golioth-zephyr-sdk/issues"
+"Homepage" = "https://github.com/golioth/python-golioth-tools"
+"Bug Tracker" = "https://github.com/golioth/python-golioth-tools/issues"
 
 [project.entry-points.pytest11]
 golioth = "golioth.pytest_plugin"

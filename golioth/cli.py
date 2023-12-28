@@ -6,6 +6,7 @@ import fnmatch
 import json
 from pathlib import Path
 import re
+import sys
 from typing import Optional, Tuple, Union
 import yaml
 
@@ -591,6 +592,58 @@ async def list(config):
 
         console.print([d.info for d in devices])
 
+
+@cli.group()
+def credentials():
+    """Device credential related commands."""
+    pass
+
+@credentials.command()
+@click.option('-d', '--device-name', required = True)
+@pass_config
+async def list(config, device_name):
+    """List all PSKs"""
+    with console.status('Getting PSKs...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+        device = await project.device_by_name(device_name)
+
+        psks = await device.credentials.list()
+
+        console.print([psk.info for psk in psks])
+
+@credentials.command()
+@click.option('-d', '--device-name', required = True)
+@click.argument('identity')
+@click.argument('key')
+@pass_config
+async def add(config, device_name, identity, key):
+    """Add PSK credential to device"""
+    with console.status('Adding PSK to device...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+        device = await project.device_by_name(device_name)
+
+        try:
+            psk = await device.credentials.add(identity, key)
+        except Exception as e:
+            console.print(e)
+            sys.exit(1)
+
+        console.print(psk)
+
+@credentials.command()
+@click.option('-d', '--device-name', required = True)
+@click.argument('credential-id')
+@pass_config
+async def delete(config, device_name, credential_id):
+    """Delete device credential"""
+    with console.status('Deleting device credential...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+        device = await project.device_by_name(device_name)
+
+        await device.credentials.delete(credential_id)
 
 @cli.group()
 def logs():

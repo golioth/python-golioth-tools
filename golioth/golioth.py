@@ -309,11 +309,24 @@ class LogEntry:
     def metadata(self) -> dict:
         return self.info['metadata']
 
+class PSK:
+    def __init__(self, info: dict[str, Any]):
+        self.info = info
+
+    @property
+    def identity(self) -> str:
+        return self.info['identity']
+
+    @property
+    def key(self) -> str:
+        return self.info['preSharedKey']
+
 class Device(ApiNodeMixin):
     def __init__(self, project: Project, info: dict[str, Any]):
         self.project = project
         self.info = info
         self.base_url = f'{project.base_url}/devices/{self.id}'
+        self.credentials = DeviceCredentials(self)
         self.rpc = DeviceRPC(self)
         self.lightdb = DeviceLightDB(self)
         self.stream = DeviceStream(self)
@@ -350,6 +363,36 @@ class Device(ApiNodeMixin):
         async for log in self.project.logs_iter(lines=lines, params=params):
             yield log
 
+class DeviceCredentials(ApiNodeMixin):
+    def __init__(self, device: Device):
+        self.device = device
+        self.base_url: str = device.base_url
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        return self.device.headers
+
+    async def list(self) -> [PSK]:
+        async with self.http_client as c:
+            response = await c.get('credentials')
+            return [PSK(e) for e in response.json()['list']]
+
+    async def add(self, identity, key):
+        body = {
+            "type": "PRE_SHARED_KEY",
+            "identity": identity,
+            "preSharedKey": key,
+        }
+        async with self.http_client as c:
+            response = await c.post('credentials', json=body)
+            if response.status_code == 200:
+                return response.json()['data']
+            else:
+                raise ApiException(response.json()['message'])
+
+    async def delete(self, credential_id):
+        async with self.http_client as c:
+            response = await c.delete(f'credentials/{credential_id}')
 
 class DeviceLightDB(ApiNodeMixin):
     ValueType = Union[str, int, float, bool, 'ValueType']

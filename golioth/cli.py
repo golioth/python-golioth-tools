@@ -606,6 +606,16 @@ async def create(config, name, hardware_id):
 
         console.print(device.info)
 
+@device.command()
+@click.argument('name')
+@pass_config
+async def delete(config, name):
+    """Delete a device"""
+    with console.status('Deleting device...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+
+        await project.delete_device(name)
 
 @cli.group()
 def credentials():

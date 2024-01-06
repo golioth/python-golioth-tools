@@ -226,6 +226,19 @@ class Project(ApiNodeMixin):
 
         return devices[0]
 
+    async def create_device(self, name: str, hardware_id: str) -> Device:
+        body = {
+            "name" : name,
+            "hardwareIds" : [hardware_id],
+            "tagIds" : []
+        }
+        resp = await self.post('devices', json=body)
+        return Device(self, resp.json()['data'])
+
+    async def delete_device(self, name: str):
+        device_id = (await self.device_by_name(name)).id
+        await self.delete(f'devices/{device_id}')
+
     async def get_logs(self, params: dict = {}) -> list[LogEntry]:
         resp = await self.get('logs', params=params)
         return [LogEntry(e) for e in reversed(resp.json()['list'])]

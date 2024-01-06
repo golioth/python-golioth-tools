@@ -592,6 +592,30 @@ async def list(config):
 
         console.print([d.info for d in devices])
 
+@device.command()
+@click.argument('name')
+@click.argument('hardware_id')
+@pass_config
+async def create(config, name, hardware_id):
+    """Create a device"""
+    with console.status('Creating device...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+
+        device = await project.create_device(name, hardware_id)
+
+        console.print(device.info)
+
+@device.command()
+@click.argument('name')
+@pass_config
+async def delete(config, name):
+    """Delete a device"""
+    with console.status('Deleting device...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+
+        await project.delete_device(name)
 
 @cli.group()
 def credentials():

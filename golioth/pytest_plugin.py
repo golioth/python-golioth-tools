@@ -1,5 +1,7 @@
 import os
 import pytest
+import random
+import string
 from golioth import Client
 
 def pytest_addoption(parser):
@@ -24,8 +26,10 @@ def api_key(request):
 def device_name(request):
     if request.config.getoption("--device-name") is not None:
         return request.config.getoption("--device-name")
-    else:
+    elif 'GOLIOTH_DEVICE_NAME' in os.environ:
         return os.environ['GOLIOTH_DEVICE_NAME']
+    else:
+        return None
 
 @pytest.fixture(scope="module")
 async def project(api_key):
@@ -37,6 +41,14 @@ async def project(api_key):
 
 @pytest.fixture(scope="module")
 async def device(project, device_name):
-    device = await project.device_by_name(device_name)
+    if device_name is not None:
+        device = await project.device_by_name(device_name)
+        yield device
+    else:
+        name = 'generated-' + ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(16))
+        device = await project.create_device(name, name)
+        await device.credentials.add(name, name)
 
-    return device
+        yield device
+
+        await project.delete_device(name)

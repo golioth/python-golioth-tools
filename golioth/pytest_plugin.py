@@ -33,8 +33,7 @@ def device_name(request):
 
 @pytest.fixture(scope="module")
 async def project(api_key):
-    client = Client(api_url = "https://api.golioth.dev",
-                    api_key = api_key)
+    client = Client(api_key = api_key)
     project = (await client.get_projects())[0]
 
     return project

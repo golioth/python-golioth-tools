@@ -362,6 +362,10 @@ class Device(ApiNodeMixin):
     def enabled(self):
         return self.info["enabled"]
 
+    @property
+    def tags(self):
+        return self.info['tagIds']
+
     async def get_logs(self, params: dict = {}) -> list[LogEntry]:
         params['deviceId'] = self.id
         return await self.project.get_logs(params=params)
@@ -376,6 +380,33 @@ class Device(ApiNodeMixin):
         params['deviceId'] = self.id
         async for log in self.project.logs_iter(lines=lines, params=params):
             yield log
+
+    async def add_tag(self, tag_id: str):
+        body = {
+           "addTagId": [ tag_id ],
+        }
+        async with self.http_client as c:
+            response = await c.patch(self.base_url, json=body)
+            if response.status_code == 200:
+                if 'tagIds' in response.json()['data']:
+                    self.info['tagIds'] = response.json()['data']['tagIds']
+                return response.json()['data']
+            else:
+                raise ApiException(response.json()['message'])
+
+    async def remove_tag(self, tag_id: str):
+        body = {
+           "removeTagId": [ tag_id ],
+        }
+        async with self.http_client as c:
+            response = await c.patch(self.base_url, json=body)
+            if response.status_code == 200:
+                if 'tagIds' in response.json()['data']:
+                    self.info['tagIds'] = response.json()['data']['tagIds']
+                return response.json()['data']
+            else:
+                raise ApiException(response.json()['message'])
+
 
 class DeviceCredentials(ApiNodeMixin):
     def __init__(self, device: Device):

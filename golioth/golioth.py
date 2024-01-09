@@ -197,6 +197,7 @@ class Project(ApiNodeMixin):
         self.releases: ProjectReleases = ProjectReleases(self)
         self.certificates: ProjectCertificates = ProjectCertificates(self)
         self.settings: ProjectSettings = ProjectSettings(self)
+        self.tags: ProjectTags = ProjectTags(self)
 
     @property
     def headers(self) -> Dict[str, str]:
@@ -881,3 +882,85 @@ class ProjectSettings:
             await self.project.delete('settings/' + setting['id'])
         except KeyError:
             pass
+
+
+class Tag(ApiNodeMixin):
+    class Error(ApiException):
+        pass
+
+    class AlreadyExists(Error):
+        pass
+
+    class InvalidCharacters(Error):
+        pass
+
+    def __init__(self, project: Project, info: dict[str, Any]):
+        self.project = project
+        self.info = info
+        self.base_url = f'{project.base_url}/tags/{self.id}'
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        return self.project.headers
+
+    @property
+    def id(self):
+        return self.info['id']
+
+    @property
+    def name(self):
+        return self.info['name']
+
+    def __repr__(self):
+        return f'Tag <{self.id}, name={self.name}>'
+
+
+class ProjectTags(ApiNodeMixin):
+    def __init__(self, project: Project):
+        self.project = project
+        self.base_url = self.project.base_url + '/tags'
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        return self.project.headers
+
+    async def get_all(self) -> list:
+        resp = await self.project.get('tags')
+        return [Tag(self, d) for d in resp.json()['list']]
+
+    async def get(self, tag_id: str):
+        resp = await super().get(tag_id)
+        return Tag(self.project, resp.json()['data'])
+
+    async def get_id(self, tag_name: str):
+        tag_list = await self.get_all()
+        for t in tag_list:
+            if t.name == tag_name:
+                return t.id
+        return None
+
+    async def delete(self, tag_id: str):
+        try:
+            return await super().delete(tag_id)
+        except httpx.HTTPStatusError as err:
+            msg = err.response.json()['message']
+            if 'tag not found' in msg:
+                raise InvalidObjectID(msg) from err
+
+            raise err
+
+    async def create(self, name: str) -> Tag:
+        body = {
+            "name" : name,
+        }
+        try:
+            resp = await self.post(self.base_url, json=body)
+        except httpx.HTTPStatusError as err:
+            msg = err.response.json()['message']
+            if 'tag name already being used' in msg:
+                raise Tag.AlreadyExists(msg) from err
+            elif 'can use only use characters' in msg:
+                raise Tag.InvalidCharacters(msg) from err
+            raise err
+
+        return Tag(self, resp.json()['data'])

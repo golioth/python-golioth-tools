@@ -867,6 +867,80 @@ async def delete(config, device_name, key):
         return
 
 
+@cli.group()
+def tags():
+    """Tag related commands."""
+    pass
+
+@tags.command()
+@pass_config
+async def list(config):
+    """List all Tags"""
+    with console.status('Getting Tags...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+
+        tags = await project.tags.get_all()
+
+        console.print([tag for tag in tags])
+
+@tags.command()
+@click.argument('tag_id')
+@pass_config
+async def get(config, tag_id):
+    """List single Tag by tagId"""
+    with console.status(f'Getting Tag {tag_id}...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+
+        tag = await project.tags.get(tag_id)
+
+        console.print(tag)
+
+@tags.command()
+@click.argument('tag_name')
+@pass_config
+async def get_id(config, tag_name):
+    """Get Tag ID by name"""
+    with console.status(f'Getting Tag ID for {tag_name}...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+
+        b_id = await project.tags.get_id(tag_name)
+
+        console.print(b_id)
+
+@tags.command()
+@click.argument('tag_name')
+@pass_config
+async def create(config, tag_name):
+    """Create new Tag using name"""
+    with console.status(f'Adding Tag: {tag_name}...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+
+        try:
+            await project.tags.create(tag_name)
+        except Exception as e:
+            console.print(e)
+            sys.exit(1)
+
+@tags.command()
+@click.argument('tag_id')
+@pass_config
+async def delete(config, tag_id):
+    """Delete Tag using tagId"""
+    with console.status(f'Deleting Tag: {tag_id}...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+
+        try:
+            await project.tags.delete(tag_id)
+        except Exception as e:
+            console.print(e)
+            sys.exit(1)
+
+
 def main():
     cli(_anyio_backend='trio')
 

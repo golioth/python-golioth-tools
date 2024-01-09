@@ -617,6 +617,32 @@ async def delete(config, name):
 
         await project.delete_device(name)
 
+@device.command()
+@click.argument('name')
+@click.argument('tag_id')
+@pass_config
+async def add_tag(config, name, tag_id):
+    """Add a tag to device using tagId """
+    with console.status(f'Add in tagId {tag_id}...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+        device = await project.device_by_name(name)
+
+        await device.add_tag(tag_id)
+
+@device.command()
+@click.argument('name')
+@click.argument('tag_id')
+@pass_config
+async def remove_tag(config, name, tag_id):
+    """Add a tag to device using tagId """
+    with console.status(f'Add in tagId {tag_id}...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+        device = await project.device_by_name(name)
+
+        await device.remove_tag(tag_id)
+
 @cli.group()
 def credentials():
     """Device credential related commands."""

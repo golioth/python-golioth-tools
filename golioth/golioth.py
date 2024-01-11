@@ -402,9 +402,18 @@ class Device(ApiNodeMixin):
             else:
                 raise ApiException(response.json()['message'])
 
-    '''
-    TODO: remove_blueprint;
-    '''
+    async def remove_blueprint(self, blueprint_id: str):
+        body = {
+           "blueprintId": None
+        }
+        async with self.http_client as c:
+            response = await c.patch(self.base_url, json=body)
+            if response.status_code == 200:
+                if 'blueprintId' in response.json()['data']:
+                    self.info['blueprintId'] = response.json()['data']['blueprintId']
+                return response.json()['data']
+            else:
+                raise ApiException(response.json()['message'])
 
     async def add_tag(self, tag_id: str):
         body = {

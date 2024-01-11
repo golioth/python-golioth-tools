@@ -364,6 +364,13 @@ class Device(ApiNodeMixin):
         return self.info["enabled"]
 
     @property
+    def blueprint(self):
+        if 'blueprintId' in self.info:
+            return self.info['blueprintId']
+        else:
+            return None
+
+    @property
     def tags(self):
         return self.info['tagIds']
 
@@ -381,6 +388,23 @@ class Device(ApiNodeMixin):
         params['deviceId'] = self.id
         async for log in self.project.logs_iter(lines=lines, params=params):
             yield log
+
+    async def add_blueprint(self, blueprint_id: str):
+        body = {
+           "blueprintId": blueprint_id,
+        }
+        async with self.http_client as c:
+            response = await c.patch(self.base_url, json=body)
+            if response.status_code == 200:
+                if 'blueprintId' in response.json()['data']:
+                    self.info['blueprintId'] = response.json()['data']['blueprintId']
+                return response.json()['data']
+            else:
+                raise ApiException(response.json()['message'])
+
+    '''
+    TODO: remove_blueprint;
+    '''
 
     async def add_tag(self, tag_id: str):
         body = {

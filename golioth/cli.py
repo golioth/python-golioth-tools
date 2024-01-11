@@ -894,6 +894,84 @@ async def delete(config, device_name, key):
 
 
 @cli.group()
+def blueprints():
+    """Blueprint related commands."""
+    pass
+
+@blueprints.command()
+@pass_config
+async def list(config):
+    """List all Blueprints"""
+    with console.status('Getting Blueprints...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+
+        blueprints = await project.blueprints.get_all()
+
+        console.print([blueprint for blueprint in blueprints])
+
+@blueprints.command()
+@click.argument('blueprint_id')
+@pass_config
+async def get(config, blueprint_id):
+    """List single Blueprint by blueprintId"""
+    with console.status(f'Getting Blueprint {blueprint_id}...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+
+        blueprint = await project.blueprints.get(blueprint_id)
+
+        console.print(blueprint)
+
+@blueprints.command()
+@click.argument('blueprint_name')
+@pass_config
+async def get_id(config, blueprint_name):
+    """Get Blueprint ID by name"""
+    with console.status(f'Getting Blueprint {blueprint_name}...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+
+        b_id = await project.blueprints.get_id(blueprint_name)
+
+        console.print(b_id)
+
+@blueprints.command()
+@click.argument('blueprint_name')
+@click.option('-p', '--platform', default=None,
+              help='Platform: Zephyr or blank. When Zephyr is selected a boardId must be provided.')
+@click.option('-b', '--board', default=None,
+              help='boardId as defined by Zephyr RTOS.')
+@pass_config
+async def create(config, blueprint_name, platform, board):
+    """Create new Blueprint using name"""
+    with console.status(f'Adding Blueprint: {blueprint_name}...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+
+        try:
+            await project.blueprints.create(blueprint_name, platform=platform, boardId=board)
+        except Exception as e:
+            console.print(e)
+            sys.exit(1)
+
+@blueprints.command()
+@click.argument('blueprint_id')
+@pass_config
+async def delete(config, blueprint_id):
+    """Delete Blueprint using blueprintId"""
+    with console.status(f'Deleting Blueprint: {blueprint_id}...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+
+        try:
+            await project.blueprints.delete(blueprint_id)
+        except Exception as e:
+            console.print(e)
+            sys.exit(1)
+
+
+@cli.group()
 def tags():
     """Tag related commands."""
     pass

@@ -197,6 +197,7 @@ class Project(ApiNodeMixin):
         self.releases: ProjectReleases = ProjectReleases(self)
         self.certificates: ProjectCertificates = ProjectCertificates(self)
         self.settings: ProjectSettings = ProjectSettings(self)
+        self.blueprints: ProjectBlueprints = ProjectBlueprints(self)
         self.tags: ProjectTags = ProjectTags(self)
 
     @property
@@ -913,6 +914,112 @@ class ProjectSettings:
             await self.project.delete('settings/' + setting['id'])
         except KeyError:
             pass
+
+
+class Blueprint(ApiNodeMixin):
+    class Error(ApiException):
+        pass
+
+    class AlreadyExists(Error):
+        pass
+
+    class InvalidCharacters(Error):
+        pass
+
+    class ErrMsgFromServer(Error):
+        pass
+
+    def __init__(self, project: Project, info: dict[str, Any]):
+        self.project = project
+        self.info = info
+        self.base_url = f'{project.base_url}/blueprints/{self.id}'
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        return self.project.headers
+
+    @property
+    def id(self):
+        return self.info['id']
+
+    @property
+    def name(self):
+        return self.info['name']
+
+    @property
+    def boardId(self):
+        if 'boardId' in self.info:
+            return self.info['boardId']
+        else:
+            return None
+
+    @property
+    def platform(self):
+        if 'platform' in self.info:
+            return self.info['platform']
+        else:
+            return None
+
+    def __repr__(self):
+        return f'Blueprint <{self.id}, name={self.name}, boardId={self.boardId}, platform={self.platform}>'
+
+
+class ProjectBlueprints(ApiNodeMixin):
+    def __init__(self, project: Project):
+        self.project = project
+        self.base_url = self.project.base_url + '/blueprints'
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        return self.project.headers
+
+    async def get_all(self) -> list:
+        resp = await self.project.get(self.base_url)
+        return [Blueprint(self, b) for b in resp.json()['list']]
+
+    async def get(self, blueprint_id: str):
+        resp = await super().get(blueprint_id)
+        return Blueprint(self.project, resp.json()['data'])
+
+    async def get_id(self, blueprint_name: str):
+        bp_list = await self.get_all()
+        for b in bp_list:
+            if b.name == blueprint_name:
+                return b.id
+        return None
+
+    async def delete(self, blueprint_id: str):
+        try:
+            return await super().delete(blueprint_id)
+        except httpx.HTTPStatusError as err:
+            msg = err.response.json()['message']
+            if 'tag not found' in msg:
+                raise InvalidObjectID(msg) from err
+            elif msg != None and msg != "":
+                raise Blueprint.ErrMsgFromServer(msg) from err
+            raise err
+
+    async def create(self, name: str, platform: str | None = None, boardId: str | None = None) -> Blueprint:
+        body = { "name" : name }
+
+        if platform != None:
+            body["platform"] = platform
+        if boardId != None:
+            body["boardId"] = boardId
+
+        try:
+            resp = await self.post(self.base_url, json=body)
+        except httpx.HTTPStatusError as err:
+            msg = err.response.json()['message']
+            if 'blueprint name already being used' in msg:
+                raise Blueprint.AlreadyExists(msg) from err
+            elif 'can use only use characters' in msg:
+                raise Blueprint.InvalidCharacters(msg) from err
+            elif msg != None and msg != "":
+                raise Blueprint.ErrMsgFromServer(msg) from err
+            raise err
+
+        return Blueprint(self, resp.json()['data'])
 
 
 class Tag(ApiNodeMixin):

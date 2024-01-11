@@ -622,14 +622,28 @@ async def delete(config, name):
 @click.argument('blueprint_name')
 @pass_config
 async def add_blueprint(config, device_name, blueprint_name):
-    """Add a Blueprint to device using Blueprint name"""
-    with console.status(f'Adding Blueprint: {blueprint_name}...'):
+    """Add a Blueprint to Device using Device name and Blueprint name"""
+    with console.status(f'Adding Blueprint: {blueprint_name} to {device_name}...'):
         client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
         project = await Project.get_by_id(client, config.default_project)
         device = await project.device_by_name(device_name)
         blueprint_id = await project.blueprints.get_id(blueprint_name)
 
         await device.add_blueprint(blueprint_id)
+
+@device.command()
+@click.argument('device_name')
+@click.argument('blueprint_name')
+@pass_config
+async def remove_blueprint(config, device_name, blueprint_name):
+    """Remove a Blueprint from Device using Device name and Blueprint name"""
+    with console.status(f'Removing Blueprint: {blueprint_name} from {device_name}...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        project = await Project.get_by_id(client, config.default_project)
+        device = await project.device_by_name(device_name)
+        blueprint_id = await project.blueprints.get_id(blueprint_name)
+
+        await device.remove_blueprint(blueprint_id)
 
 @device.command()
 @click.argument('name')

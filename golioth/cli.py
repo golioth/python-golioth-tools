@@ -615,7 +615,7 @@ async def delete(config, name):
         client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
         project = await Project.get_by_id(client, config.default_project)
 
-        await project.delete_device(name)
+        await project.delete_device_by_name(name)
 
 @device.command()
 @click.argument('device_name')

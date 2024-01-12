@@ -50,4 +50,4 @@ async def device(project, device_name):
 
         yield device
 
-        await project.delete_device(name)
+        await project.delete_device(device)

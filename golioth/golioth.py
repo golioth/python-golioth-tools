@@ -237,9 +237,15 @@ class Project(ApiNodeMixin):
         resp = await self.post('devices', json=body)
         return Device(self, resp.json()['data'])
 
-    async def delete_device(self, name: str):
-        device_id = (await self.device_by_name(name)).id
-        await self.delete(f'devices/{device_id}')
+    async def delete_device_by_id(self, id: str):
+        await self.delete(f'devices/{id}')
+
+    async def delete_device(self, dev: Device):
+        await self.delete_device_by_id(dev.id)
+
+    async def delete_device_by_name(self, name: str):
+        dev = await self.device_by_name(name)
+        await self.delete_device(dev)
 
     async def get_logs(self, params: dict = {}) -> list[LogEntry]:
         resp = await self.get('logs', params=params)

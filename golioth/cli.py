@@ -108,7 +108,7 @@ def artifacts():
 @click.option('-p', '--package', default='main', show_default=True,
               help='Package name')
 @click.option('-r', 'release_rollout',
-              help='Create release with the same tag (when specified once) and rollout (when specified twice).',
+              help='Create release with the same release_tag (when specified once) and rollout (when specified twice).',
               count=True)
 @click.option('-f', '--force',
               help='Force upload, by removing conflicting artifacts (and/or releases).',
@@ -142,7 +142,7 @@ async def upload(config, package, release_rollout, force, path):
 
             if create_release:
                 releases_to_remove.update([r for r in releases
-                                           if version in r.tags])
+                                           if version in r.release_tags])
 
             for artifact in artifacts_to_remove:
                 releases_to_remove.update([r for r in releases
@@ -159,7 +159,7 @@ async def upload(config, package, release_rollout, force, path):
 
         if create_release:
             release = await project.releases.create(artifact_ids=[artifact.id],
-                                                    tags=[version],
+                                                    release_tags=[version],
                                                     rollout=(release_rollout > 1))
 
             console.print(release)
@@ -243,22 +243,26 @@ def releases():
 
 
 @releases.command()
-@click.option('artifact_ids', '--artifact', '-a', multiple=True, required=True)
-@click.option('tags', '--tag', '-t', multiple=True, required=True)
+@click.option('artifact_ids', '--artifact', '-a', multiple=True, required=True,
+              help='List of Artifacts included in this Release')
+@click.option('release_tags', '--release-tag', '-t', multiple=True, default=[],
+              help='List of unique release tags to assign to this Release')
+@click.option('device_tags', '--device-tags', '-d', multiple=True, default=[],
+              help='List of device Tag IDs to assign to this Release')
 @click.option('--rollout', '-r', is_flag=True)
 @pass_config
-async def create(config, artifact_ids, tags, rollout):
+async def create(config, artifact_ids, release_tags, device_tags, rollout):
     """Create DFU release."""
     with console.status('Creating DFU release...'):
         client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
         project = await Project.get_by_id(client, config.default_project)
 
-        await project.releases.create(artifact_ids, tags, rollout)
+        await project.releases.create(artifact_ids, release_tags, device_tags, rollout)
 
 
 @releases.command()
 @click.argument('release_id', nargs=-1, required=True)
-@click.option('--by-tag', '-t', is_flag=True,
+@click.option('--by-release-tag', '-t', is_flag=True,
               help='Select release by release tag instead of release ID.')
 @click.option('--hidden-glob', 'match_type', flag_value='glob',
               default=True,
@@ -269,7 +273,7 @@ async def create(config, artifact_ids, tags, rollout):
               type=MATCH_GLOB_REGEX_SWITCH,
               help='Use regex match (instead of glob).')
 @pass_config
-async def delete(config, release_id, by_tag, match_type):
+async def delete(config, release_id, by_release_tag, match_type):
     """Delete DFU releases.
 
     \b
@@ -277,7 +281,7 @@ async def delete(config, release_id, by_tag, match_type):
     -------------------
 
     \b
-    Delete release with tag '1.0.0':
+    Delete release with release_tag '1.0.0':
     $ golioth releases delete -t 1.0.0
 
     \b
@@ -285,12 +289,12 @@ async def delete(config, release_id, by_tag, match_type):
     $ golioth releases delete '*'
 
     \b
-    Delete all version 2.x.x and 3.x.x releases:
+    Delete all releases with 2.x.x and 3.x.x release_tags:
     $ golioth releases delete -t '[2-3].*.*'
     """
-    if by_tag:
+    if by_release_tag:
         def artifact_match(pattern, release):
-            for tag in release.tags:
+            for tag in release.release_tags:
                 if pattern.match(tag):
                     return True
 
@@ -333,7 +337,7 @@ async def list(config):
 
 @releases.command()
 @click.argument('release_id', nargs=-1, required=True)
-@click.option('--by-tag', '-t', is_flag=True,
+@click.option('--by-release-tag', '-t', is_flag=True,
               help='Select release by release tag instead of release ID.')
 @click.option('--hidden-glob', 'match_type', flag_value='glob',
               default=True,
@@ -344,7 +348,7 @@ async def list(config):
               type=MATCH_GLOB_REGEX_SWITCH,
               help='Use regex match (instead of glob).')
 @pass_config
-async def rollback(config, release_id, by_tag, match_type):
+async def rollback(config, release_id, by_release_tag, match_type):
     """Rollout DFU releases.
 
     \b
@@ -364,9 +368,9 @@ async def rollback(config, release_id, by_tag, match_type):
     $ golioth releases rollback -t '[2-3].*.*'
     """
 
-    if by_tag:
+    if by_release_tag:
         def artifact_match(pattern, release):
-            for tag in release.tags:
+            for tag in release.release_tags:
                 if pattern.match(tag):
                     return True
 

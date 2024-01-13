@@ -713,8 +713,15 @@ class Artifact(ApiNodeMixin):
     def version(self):
         return self.info['version']
 
+    @property
+    def blueprint(self):
+        if 'blueprintId' in self.info:
+            return self.info['blueprintId']
+        else:
+            return None
+
     def __repr__(self):
-        return f'Artifact <{self.id}, package={self.package}, version={self.version}>'
+        return f'Artifact <{self.id}, package={self.package}, version={self.version}, blueprint={self.blueprint}>'
 
 
 class Release(ApiNodeMixin):
@@ -789,12 +796,14 @@ class ProjectArtifacts(ApiNodeMixin):
     async def upload(self,
                      path: Path,
                      version: str,
-                     package: str = 'main') -> Artifact:
+                     package: str = 'main',
+                     blueprint_id: str | None = None) -> Artifact:
         json = {
             'projectId': self.project.id,
             'content': b64encode(path.open('rb').read()).decode(),
             'version': version,
             'package': package,
+            'blueprintId': blueprint_id
         }
 
         try:

@@ -113,9 +113,11 @@ def artifacts():
 @click.option('-f', '--force',
               help='Force upload, by removing conflicting artifacts (and/or releases).',
               is_flag=True)
+@click.option('-b', '--blueprint', default=None,
+              help='Assign a Blueprint using the blueprintId.')
 @click.argument('path', type=click.Path(exists=True))
 @pass_config
-async def upload(config, package, release_rollout, force, path):
+async def upload(config, package, release_rollout, force, blueprint, path):
     """Upload new DFU artifact."""
     create_release = (release_rollout > 0)
 
@@ -154,7 +156,7 @@ async def upload(config, package, release_rollout, force, path):
             for artifact in artifacts_to_remove:
                 await project.artifacts.delete(artifact.id)
 
-        artifact = await project.artifacts.upload(Path(path), version, package)
+        artifact = await project.artifacts.upload(Path(path), version, package, blueprint)
         console.print(artifact)
 
         if create_release:

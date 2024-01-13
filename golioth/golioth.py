@@ -738,8 +738,12 @@ class Release(ApiNodeMixin):
         return self.info['id']
 
     @property
-    def tags(self):
+    def release_tags(self):
         return self.info['releaseTags']
+
+    @property
+    def device_tags(self):
+        return self.info['deviceTagIds']
 
     @property
     def artifact_ids(self):
@@ -750,7 +754,7 @@ class Release(ApiNodeMixin):
         return self.info['rollout']
 
     def __repr__(self):
-        return f'Release <{self.id}, tags={self.tags}, artifact_ids={self.artifact_ids}, rollout={self.rollout}>'
+        return f'Release <{self.id}, release_tags={self.release_tags}, device_tags={self.device_tags}, artifact_ids={self.artifact_ids}, rollout={self.rollout}>'
 
 
 class ProjectArtifacts(ApiNodeMixin):
@@ -834,10 +838,12 @@ class ProjectReleases(ApiNodeMixin):
 
     async def create(self,
                      artifact_ids: list[str],
-                     tags: list[str],
+                     release_tags: list[str] = [],
+                     device_tags: list[str] = [],
                      rollout: bool = False):
         json = {
-            'releaseTags': tags,
+            'releaseTags': release_tags,
+            'deviceTagIds': device_tags,
             'artifactIds': artifact_ids,
             'rollout': rollout,
         }

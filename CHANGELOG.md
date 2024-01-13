@@ -9,8 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### Breaking Changes
+
+- Differentiate Release Tags from Device Tags by changing the parameter name
+    - Release Tags property changed to `Release.release_tags`
+    - CLI: `releases create` command flag `--tag` changed to `--release-tag`
+    - CLI: `releases delete` command flag `--by-tag` changed to `--by-release-tag`
+    - CLI: `releases rollback` command flag `--by-tag` changed to `--by-release-tag`
+
 ### Added
 
+- Device Tags support for Releases
+    - Added `device_tags` property to Release class.
+    - Added optional `device_tags` parameter to `Releases.create()` function. This parameter accepts
+      a list of Device tag IDs.
+
 ### Changed
+
+- `Releases.create()` now only requires an Artifact ID. Both release tags and device tags are
+  optional parameters.
 
 ### Fixed

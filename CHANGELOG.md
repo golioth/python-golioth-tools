@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added `device_tags` property to Release class.
     - Added optional `device_tags` parameter to `Releases.create()` function. This parameter accepts
       a list of Device tag IDs.
+- Blueprint support in Artifacts
+    - New Artifact class property `blueprint`
+    - `ProjectArtifacts.upload()` now accepts an optional `blueprint_id` parameter
+    - CLI: `artifacts upload` now includes an optional `--blueprint` flag
 
 ### Changed
 

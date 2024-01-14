@@ -31,22 +31,32 @@ class Config:
 pass_config = click.make_pass_decorator(Config, ensure=True)
 
 @click.group()
-@click.option('-c', '--config-path', type=Path,
-              help='Path to goliothctl configuration',
-              default=Path.home() / '.golioth' / '.goliothctl.yaml')
-@click.option('--api-key', help='Api key')
+@click.option('-c', '--config-path', type=Path, show_default=True,
+              default=Path.home() / '.golioth' / '.goliothctl.yaml',
+              help='Path to goliothctl configuration.')
+@click.option('--api-key', default=None, show_default=True,
+              help='API key to use instead of stored config')
+@click.option('--api-url', default="https://api.golioth.io", show_default=True,
+              help='URL of Golioth REST API. Only applicable when --api-key is specified')
 @pass_config
-def cli(config, config_path, api_key):
-    config.api_key = api_key
+def cli(config, config_path, api_key, api_url):
 
-    with config_path.open('r') as fp:
-        config_dict = yaml.load(fp, yaml.SafeLoader)
-        if 'accesstoken' in config_dict:
-            config.access_token = config_dict['accesstoken']
-        if 'projectid' in config_dict:
-            config.default_project = config_dict['projectid']
-        if 'apiurl' in config_dict:
-            config.api_url = config_dict['apiurl']
+    if api_key == None:
+        # Load stored config
+        with config_path.open('r') as fp:
+            config_dict = yaml.load(fp, yaml.SafeLoader)
+            if 'accesstoken' in config_dict:
+                config.access_token = config_dict['accesstoken']
+            if 'projectid' in config_dict:
+                config.default_project = config_dict['projectid']
+            if 'apiurl' in config_dict:
+                config.api_url = config_dict['apiurl']
+
+    else:
+        # Use supplied API key
+        config.api_key = api_key
+        config.default_project = None
+        config.api_url = api_url
 
 def rpc_params(params: str) -> Union[list, dict]:
     parsed = json.loads(params)

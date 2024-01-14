@@ -205,9 +205,13 @@ class Project(ApiNodeMixin):
         return self.client.headers
 
     @staticmethod
-    async def get_by_id(client: Client, project_id: str):
-        resp = await client.get(f'projects/{project_id}')
-        return Project(client, resp.json()['data'])
+    async def get_by_id(client: Client, project_id: str | None) -> Project:
+        if project_id == None:
+            project = (await client.get_projects())[0]
+        else:
+            resp = await client.get(f'projects/{project_id}')
+            project = Project(client, resp.json()['data'])
+        return project
 
     @property
     def id(self) -> str:

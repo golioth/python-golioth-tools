@@ -22,4 +22,8 @@ from .golioth import (
     ProjectReleases,
     ProjectCertificates,
     ProjectSettings,
+    Blueprint,
+    ProjectBlueprints,
+    Tag,
+    ProjectTags,
 )

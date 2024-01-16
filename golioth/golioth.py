@@ -1054,7 +1054,7 @@ class ProjectBlueprints(ApiNodeMixin):
         resp = await super().get(blueprint_id)
         return Blueprint(self.project, resp.json()['data'])
 
-    async def get_id(self, blueprint_name: str):
+    async def get_id(self, blueprint_name: str) -> str | None:
         bp_list = await self.get_all()
         for b in bp_list:
             if b.name == blueprint_name:

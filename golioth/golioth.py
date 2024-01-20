@@ -108,6 +108,11 @@ class ApiNodeMixin:
             return await c.put(*args, **kwargs)
 
     @check_resp
+    async def patch(self, *args, **kwargs):
+        async with self.http_client as c:
+            return await c.patch(*args, **kwargs)
+
+    @check_resp
     async def delete(self, *args, **kwargs):
         async with self.http_client as c:
             return await c.delete(*args, **kwargs)
@@ -879,12 +884,13 @@ class ProjectReleases(ApiNodeMixin):
         return Release(self.project, response.json()['data'])
 
     async def rollout_set(self, release_id: str, desired_state: bool):
-        json = { 'rollout': desired_state }
-        try:
-            return await self.project.put('releases/' + release_id, json=json)
-        except httpx.HTTPStatusError as err:
-            msg = err.response.json()['message']
-            raise err
+        body = { 'rollout': desired_state }
+        response = await self.patch(release_id, json=body)
+        if response.status_code == 200:
+            return response.json()['data']
+        else:
+            raise Release.Error(response.json()['message'])
+
 
 class ProjectCertificates(ApiNodeMixin):
     def __init__(self, project: Project):

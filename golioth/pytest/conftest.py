@@ -10,5 +10,6 @@ pytest_plugins = [
     "fixtures.cohorts",
     "fixtures.deployments",
     "fixtures.packages",
+    "fixtures.releases",
     "fixtures.tags",
 ]

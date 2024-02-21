@@ -28,7 +28,7 @@ def api_key(request):
 def api_url(request):
     if request.config.getoption("--api-url") is not None:
         return request.config.getoption("--api-url")
-    elif os.environ['GOLIOTH_API_URL'] is not None:
+    elif 'GOLIOTH_API_URL' in os.environ:
         return os.environ['GOLIOTH_API_URL']
     else:
         return "https://api.golioth.io"

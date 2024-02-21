@@ -631,12 +631,12 @@ class DeviceSettings(ApiNodeMixin):
 
     async def set(self, key: str, value: Union[int, float, bool, str],
                   override: bool = True):
-        if isinstance(value, int):
+        if isinstance(value, bool):
+            data_type = 'boolean'
+        elif isinstance(value, int):
             data_type = 'integer'
         elif isinstance(value, float):
             data_type = 'float'
-        elif isinstance(value, bool):
-            data_type = 'boolean'
         elif isinstance(value, str):
             data_type = 'string'
         else:
@@ -942,12 +942,12 @@ class ProjectSettings:
 
     async def set(self, key: str, value: Union[int, float, bool, str],
                   override: bool = True):
-        if isinstance(value, int):
+        if isinstance(value, bool):
+            data_type = 'boolean'
+        elif isinstance(value, int):
             data_type = 'integer'
         elif isinstance(value, float):
             data_type = 'float'
-        elif isinstance(value, bool):
-            data_type = 'boolean'
         elif isinstance(value, str):
             data_type = 'string'
         else:

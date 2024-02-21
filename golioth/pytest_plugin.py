@@ -7,6 +7,8 @@ from golioth import Client
 def pytest_addoption(parser):
     parser.addoption("--api-key", type=str,
                      help="Golioth API key")
+    parser.addoption("--api-url", type=str,
+                     help="Golioth API gateway URL")
     parser.addoption("--device-name", type=str,
                      help="Golioth device name")
 
@@ -23,6 +25,15 @@ def api_key(request):
         return os.environ['GOLIOTH_API_KEY']
 
 @pytest.fixture(scope="session")
+def api_url(request):
+    if request.config.getoption("--api-url") is not None:
+        return request.config.getoption("--api-url")
+    elif os.environ['GOLIOTH_API_URL'] is not None:
+        return os.environ['GOLIOTH_API_URL']
+    else:
+        return "https://api.golioth.io"
+
+@pytest.fixture(scope="session")
 def device_name(request):
     if request.config.getoption("--device-name") is not None:
         return request.config.getoption("--device-name")
@@ -32,8 +43,8 @@ def device_name(request):
         return None
 
 @pytest.fixture(scope="module")
-async def project(api_key):
-    client = Client(api_key = api_key)
+async def project(api_key, api_url):
+    client = Client(api_key = api_key, api_url = api_url)
     project = (await client.get_projects())[0]
 
     return project

@@ -237,6 +237,10 @@ class Project(ApiNodeMixin):
 
         return devices[0]
 
+    async def device_by_id(self, id: str) -> Device:
+        resp = await self.get(f'devices/{id}')
+        return Device(self, resp.json()['data'])
+
     async def create_device(self, name: str, hardware_id: str) -> Device:
         body = {
             "name" : name,

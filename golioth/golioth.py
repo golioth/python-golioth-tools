@@ -389,6 +389,11 @@ class Device(ApiNodeMixin):
     def tags(self):
         return self.info['tagIds']
 
+    async def refresh(self):
+        async with self.http_client as c:
+            resp = await c.get(self.base_url)
+            self.info = resp.json()['data']
+
     async def get_logs(self, params: dict = {}) -> list[LogEntry]:
         params['deviceId'] = self.id
         return await self.project.get_logs(params=params)

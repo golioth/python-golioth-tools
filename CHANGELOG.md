@@ -7,6 +7,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.6.0] - 2024-02-27
+
+### Fixed
+
+- Fixed a bug that prevented setting Boolean settings
+
+### Added
+
+- Device class now has a `refresh()` method for updating with the latest metadata
+- Can request a Device by its DeviceId
+- New CLI option for the pytest plugin to choose the API gateway URL
+- New tests for tags and blueprints
+
 ## [v0.5.1] - 2024-01-20
 
 ### Fixed

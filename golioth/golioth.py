@@ -609,8 +609,10 @@ class DeviceRPC(ApiNodeMixin):
         async def call_method(*args, **kwargs):
             if args:
                 params = args
-            else:
+            elif kwargs:
                 params = kwargs
+            else:
+                params = []
 
             return await self.call(name, params)
 

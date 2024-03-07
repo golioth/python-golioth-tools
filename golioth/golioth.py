@@ -393,6 +393,13 @@ class Device(ApiNodeMixin):
     def tags(self):
         return self.info['tagIds']
 
+    @property
+    def metadata(self) -> dict | None:
+        if 'metadata' in self.info:
+            return self.info['metadata']
+        else:
+            return None
+
     async def refresh(self):
         async with self.http_client as c:
             resp = await c.get(self.base_url)

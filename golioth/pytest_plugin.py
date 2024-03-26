@@ -11,6 +11,8 @@ def pytest_addoption(parser):
                      help="Golioth API gateway URL")
     parser.addoption("--device-name", type=str,
                      help="Golioth device name")
+    parser.addoption("--mask-secrets", action="store_true", default=False,
+                     help="Mask PSK/PSK-ID in GitHub Actions logs")
 
 
 @pytest.fixture(scope='session')
@@ -50,12 +52,14 @@ async def project(api_key, api_url):
     return project
 
 @pytest.fixture(scope="module")
-async def device(project, device_name):
+async def device(request, project, device_name):
     if device_name is not None:
         device = await project.device_by_name(device_name)
         yield device
     else:
         name = 'generated-' + ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase) for i in range(16))
+        if request.config.getoption("--mask-secrets"):
+            print(f"::add-mask::{name}")
         device = await project.create_device(name, name)
         await device.credentials.add(name, name)
 

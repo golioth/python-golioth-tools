@@ -601,7 +601,8 @@ class DeviceRPC(ApiNodeMixin):
                 response = await c.post('rpc', json={
                     "method": method,
                     "params": params,
-                })
+                },
+                timeout=10.0)
             except httpx.ReadTimeout as e:
                 raise RPCTimeout() from e
 

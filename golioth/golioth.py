@@ -557,9 +557,16 @@ class DeviceStream(ApiNodeMixin):
         return self.device.headers
 
     async def get(self, path: str) -> DeviceStream.ValueType:
+        query = ('{"fields":[{"path":"device_id","type":""},' +
+                    '{"path":"time","type":""},{"path":"*","type":""}],' +
+                    '"filters":[{"path":' + f'"{path}"' +
+                    ',"op":"<>","value":""}]}')
+        json_data = {
+                "encodedQuery":query,
+                }
         async with self.http_client as c:
-            response = await c.get(f'stream/{path}')
-            return response.json()['data']
+            response = await c.post('stream', json=json_data)
+            return response.json()
 
     async def set(self, path: str, value: ValueType) -> None:
         async with self.http_client as c:

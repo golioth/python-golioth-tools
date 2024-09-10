@@ -556,10 +556,45 @@ class DeviceStream(ApiNodeMixin):
     def headers(self) -> Dict[str, str]:
         return self.device.headers
 
-    async def get(self, path: str) -> DeviceStream.ValueType:
+    async def get(self,
+                  path: str | None = None,
+                  start: str | None = None,
+                  end: str | None = None,
+                  interval: str | None = None,
+                  encoded_query: str | None = None,
+                  query_time_bucket: str | None = None,
+                  page: int = 0,
+                  per_page: int = 10) -> DeviceStream.ValueType:
+        if encoded_query is not None:
+            query = encoded_query
+        elif path is not None:
+            query = ('{"fields":[{"path":"device_id","type":""},' +
+                     '{"path":"time","type":""},{"path":"*","type":""}],' +
+                     '"filters":[{"path":' + f'"{path}"' +
+                     ',"op":"<>","value":""}]}')
+        else:
+            query = ('{"fields":[{"path":"device_id","type":""},' +
+                     '{"path":"time","type":""},{"path":"*","type":""}],' +
+                     '"filters":[]}')
+
+        json_data = {
+                "encodedQuery":query,
+                "page":page,
+                "perPage":per_page,
+                }
+
+        if start is not None:
+            json_data["start"] = start
+        if end is not None:
+            json_data["end"] = end
+        if interval is not None:
+            json_data["interval"] = interval
+        if query_time_bucket is not None:
+            json_data["query.timeBucket"] = query_time_bucket
+
         async with self.http_client as c:
-            response = await c.get(f'stream/{path}')
-            return response.json()['data']
+            response = await c.post(f'stream', json=json_data)
+            return response.json()
 
     async def set(self, path: str, value: ValueType) -> None:
         async with self.http_client as c:

@@ -596,13 +596,10 @@ class DeviceStream(ApiNodeMixin):
             response = await c.post(f'stream', json=json_data)
             return response.json()
 
-    async def set(self, path: str, value: ValueType) -> None:
-        async with self.http_client as c:
-            await c.post(f'stream/{path}', json=value)
-
-    async def delete(self, path: str) -> None:
-        async with self.http_client as c:
-            await c.delete(f'stream/{path}')
+    # TODO: This API is no longer valid
+    # async def set(self, path: str, value: ValueType) -> None:
+        # async with self.http_client as c:
+            # await c.post(f'stream/{path}', json=value)
 
     @asynccontextmanager
     async def websocket(self, params: dict = {}) -> WebSocketConnection:

@@ -5,6 +5,8 @@ def anyio_backend():
     return 'trio'
 
 pytest_plugins = [
+    "fixtures.artifacts",
     "fixtures.blueprints",
+    "fixtures.releases",
     "fixtures.tags",
 ]

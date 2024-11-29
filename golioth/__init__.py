@@ -26,6 +26,8 @@ from .golioth import (
     ProjectBlueprints,
     Cohort,
     ProjectCohorts,
+    Deployment,
+    CohortDeployments,
     Package,
     ProjectPackages,
     Tag,

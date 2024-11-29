@@ -1050,6 +1050,8 @@ class Cohort(ApiNodeMixin):
         self.info = info
         self.base_url = f'{self.project_cohorts.base_url}/{self.id}'
 
+        self.deployments: CohortDeployments = CohortDeployments(self)
+
     @property
     def headers(self) -> Dict[str, str]:
         return self.project_cohorts.headers
@@ -1138,6 +1140,70 @@ class ProjectCohorts(ApiNodeMixin):
             raise err
 
         return Cohort(self, resp.json()['data'])
+
+class Deployment(ApiNodeMixin):
+    class Error(ApiException):
+        pass
+
+    class ErrMsgFromServer(Error):
+        pass
+
+    def __init__(self, info: dict[str, Any]):
+        self.info = info
+
+    @property
+    def id(self) -> str:
+        return self.info['deploymentId']
+
+    @property
+    def name(self) -> str:
+        return self.info['name']
+
+    @property
+    def artifact_ids(self) -> list:
+        return self.info['artifactIds']
+
+    def __repr__(self):
+        return (f'Deployment <deploymentId={self.id}, name={self.name}, ' +
+                f'artifactIds={self.artifact_ids}>')
+
+
+class CohortDeployments(ApiNodeMixin):
+    def __init__(self, cohort: Cohort):
+        self.cohort = cohort
+        self.base_url = f'{self.cohort.base_url}/deployments'
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        return self.cohort.headers
+
+    async def get_all(self) -> list:
+        resp = await self.cohort.get(self.base_url)
+        return [Deployment(d) for d in resp.json()['list']]
+
+    async def get(self, deployment_id: str) -> Deployment:
+        resp = await super().get(deployment_id)
+        return Deployment(resp.json()['data'])
+
+    async def get_id(self, deployment_name: str) -> str | None:
+        deployment_list = await self.get_all()
+        for d in deployment_list:
+            if d.name == deployment_name:
+                return d.id
+        return None
+
+    async def create(self, name: str, artifact_ids: list) -> Deployment:
+        body = { "name" : name , "artifactIds" : artifact_ids }
+
+        try:
+            resp = await self.post(self.base_url, json=body)
+        except httpx.HTTPStatusError as err:
+            msg = err.response.json()['message']
+            if msg != None and msg != "":
+                raise Cohort.ErrMsgFromServer(msg) from err
+            raise err
+
+        return Deployment(resp.json()['data'])
 
 class Package(ApiNodeMixin):
     class Error(ApiException):

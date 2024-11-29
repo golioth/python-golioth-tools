@@ -4,9 +4,22 @@
 # top-most EditorConfig file
 root = true
 
+# All (Defaults)
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 100
+
 # Markdown
 [*.md]
 charset = utf-8
 end_of_line = lf
 trim_trailing_whitespace = true
 max_line_length = 100
+
+# Python
+[*.py]
+indent_style = space
+indent_size = 4

@@ -205,6 +205,7 @@ class Project(ApiNodeMixin):
         self.certificates: ProjectCertificates = ProjectCertificates(self)
         self.settings: ProjectSettings = ProjectSettings(self)
         self.blueprints: ProjectBlueprints = ProjectBlueprints(self)
+        self.cohorts: ProjectCohorts = ProjectCohorts(self)
         self.tags: ProjectTags = ProjectTags(self)
 
     @property
@@ -1035,6 +1036,107 @@ class ProjectSettings:
         except KeyError:
             pass
 
+
+class Cohort(ApiNodeMixin):
+    class Error(ApiException):
+        pass
+
+    class ErrMsgFromServer(Error):
+        pass
+
+    def __init__(self, project_cohorts: ProjectCohorts, info: dict[str, Any]):
+        self.project_cohorts = project_cohorts
+        self.info = info
+        self.base_url = f'{self.project_cohorts.base_url}/{self.id}'
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        return self.project_cohorts.headers
+
+    @property
+    def id(self) -> str:
+        return self.info['cohortId']
+
+    @property
+    def name(self) -> str:
+        return self.info['name']
+
+    @property
+    def device_count(self) -> int:
+        return self.info['deviceCount']
+
+    @property
+    def active_deployment_id(self) -> str | None:
+        if 'activeDeploymentId' in self.info:
+            return self.info['activeDeploymentId']
+        else:
+            return None
+
+    def __repr__(self):
+        return (f'Cohort <cohortId={self.id}, name={self.name}, ' +
+                f'deviceCount={self.device_count} activeDeploymentId={self.active_deployment_id}>')
+
+
+class ProjectCohorts(ApiNodeMixin):
+    def __init__(self, project: Project):
+        self.project = project
+        self.base_url = f'{self.project.base_url_with_org}/cohorts'
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        return self.project.headers
+
+    async def get_all(self) -> list:
+        resp = await self.project.get(self.base_url)
+        return [Cohort(self, c) for c in resp.json()['list']]
+
+    async def get(self, cohort_id: str) -> Cohort:
+        resp = await super().get(cohort_id)
+        return Cohort(self, resp.json()['data'])
+
+    async def get_id(self, cohort_name: str) -> str | None:
+        cohort_list = await self.get_all()
+        for c in cohort_list:
+            if c.name == cohort_name:
+                return c.id
+        return None
+
+    async def create(self, name: str) -> Cohort:
+        body = { "name" : name }
+
+        try:
+            resp = await self.post(self.base_url, json=body)
+        except httpx.HTTPStatusError as err:
+            msg = err.response.json()['message']
+            if msg != None and msg != "":
+                raise Cohort.ErrMsgFromServer(msg) from err
+            raise err
+
+        return Cohort(self, resp.json()['data'])
+
+    async def delete(self, cohort_id: str):
+        try:
+            return await super().delete(cohort_id)
+        except httpx.HTTPStatusError as err:
+            msg = err.response.json()['message']
+            if 'cohort not found' in msg:
+                raise InvalidObjectID(msg) from err
+            elif msg != None and msg != "":
+                raise Cohort.ErrMsgFromServer(msg) from err
+            raise err
+
+    async def update(self, cohort_id: str, name: str) -> Cohort:
+        body = { "name" : name }
+
+        try:
+            resp = await self.put(f'{self.base_url}/{cohort_id}', json=body)
+        except httpx.HTTPStatusError as err:
+            msg = err.response.json()['message']
+            if msg != None and msg != "":
+                raise Cohort.ErrMsgFromServer(msg) from err
+            raise err
+
+        return Cohort(self, resp.json()['data'])
 
 class Blueprint(ApiNodeMixin):
     class Error(ApiException):

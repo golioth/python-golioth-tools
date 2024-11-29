@@ -24,6 +24,8 @@ from .golioth import (
     ProjectSettings,
     Blueprint,
     ProjectBlueprints,
+    Cohort,
+    ProjectCohorts,
     Tag,
     ProjectTags,
 )

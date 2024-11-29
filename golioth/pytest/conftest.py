@@ -6,5 +6,6 @@ def anyio_backend():
 
 pytest_plugins = [
     "fixtures.blueprints",
+    "fixtures.cohorts",
     "fixtures.tags",
 ]

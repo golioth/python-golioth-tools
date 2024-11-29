@@ -198,6 +198,8 @@ class Project(ApiNodeMixin):
         self.client = client
         self.info: dict[str, Any] = info
         self.base_url: str = f'{client.base_url}/projects/{self.id}'
+        self.base_url_with_org = (f'{self.client.base_url}/' +
+                                  f'organizations/{self.organization}/projects/{self.id}')
         self.artifacts: ProjectArtifacts = ProjectArtifacts(self)
         self.releases: ProjectReleases = ProjectReleases(self)
         self.certificates: ProjectCertificates = ProjectCertificates(self)
@@ -225,6 +227,10 @@ class Project(ApiNodeMixin):
     @property
     def name(self) -> str:
         return self.info['name']
+
+    @property
+    def organization(self) -> str:
+        return self.info['organizationId']
 
     async def get_devices(self, params: dict = {}) -> list[Device]:
         resp = await self.get('devices', params=params)

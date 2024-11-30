@@ -206,6 +206,7 @@ class Project(ApiNodeMixin):
         self.settings: ProjectSettings = ProjectSettings(self)
         self.blueprints: ProjectBlueprints = ProjectBlueprints(self)
         self.cohorts: ProjectCohorts = ProjectCohorts(self)
+        self.packages: ProjectPackages = ProjectPackages(self)
         self.tags: ProjectTags = ProjectTags(self)
 
     @property
@@ -1137,6 +1138,94 @@ class ProjectCohorts(ApiNodeMixin):
             raise err
 
         return Cohort(self, resp.json()['data'])
+
+class Package(ApiNodeMixin):
+    class Error(ApiException):
+        pass
+
+    class ErrMsgFromServer(Error):
+        pass
+
+    def __init__(self, info: dict[str, Any]):
+        self.info = info
+
+    @property
+    def id(self) -> str:
+        return self.info['packageId']
+
+    @property
+    def description(self) -> str:
+        return self.info['description']
+
+    @property
+    def metadata(self) -> Dict[str, str]:
+        return self.info['metadata']
+
+    def __repr__(self):
+        return (f'Package <packageId={self.id}, description={self.description}, ' +
+                f'metadata={self.metadata}>')
+
+
+class ProjectPackages(ApiNodeMixin):
+    def __init__(self, project: Project):
+        self.project = project
+        self.base_url = f'{self.project.base_url_with_org}/packages'
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        return self.project.headers
+
+    async def get_all(self) -> list:
+        resp = await self.project.get(self.base_url)
+        return [Package(p) for p in resp.json()['list']]
+
+    async def get(self, package_id: str) -> Package:
+        resp = await super().get(package_id)
+        return Package(resp.json()['data'])
+
+    async def create(self, package_id: str, description: str | None = None,
+                     metadata: Dict[str, str] | None = None) -> Package:
+        body = { "packageId" : package_id,
+                 "description" : description or "",
+                 "metadata" : metadata or dict() }
+
+        try:
+            resp = await self.post(self.base_url, json=body)
+        except httpx.HTTPStatusError as err:
+            msg = err.response.json()['message']
+            if msg != None and msg != "":
+                raise Package.ErrMsgFromServer(msg) from err
+            raise err
+
+        return Package(resp.json()['data'])
+
+    async def delete(self, package_id: str):
+        try:
+            return await super().delete(package_id)
+        except httpx.HTTPStatusError as err:
+            msg = err.response.json()['message']
+            if 'package not found' in msg:
+                raise InvalidObjectID(msg) from err
+            elif msg != None and msg != "":
+                raise Package.ErrMsgFromServer(msg) from err
+            raise err
+
+    async def update(self, package_id: str, description: str,
+                     metadata: dict[str, str]) -> Package:
+        body = { "packageId" : package_id,
+                 "description" : description,
+                 "metadata": metadata }
+
+        try:
+            resp = await self.put(f'{self.base_url}/{package_id}', json=body)
+        except httpx.HTTPStatusError as err:
+            msg = err.response.json()['message']
+            if msg != None and msg != "":
+                raise Package.ErrMsgFromServer(msg) from err
+            raise err
+
+        return Package(resp.json()['data'])
+
 
 class Blueprint(ApiNodeMixin):
     class Error(ApiException):

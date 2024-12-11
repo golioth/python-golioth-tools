@@ -46,3 +46,18 @@ async def test_update(project, cohort_to_rename, cohort_randname):
 
     fetched_cohort = await project.cohorts.get(cohort_to_rename.id)
     assert fetched_cohort.name == cohort_randname
+
+async def test_device_cohort(device, cohort):
+    assert device.cohort_id is None
+
+    await device.update_cohort(cohort.id)
+    assert device.cohort_id == cohort.id
+
+    await device.refresh()
+    assert device.cohort_id == cohort.id
+
+    await device.remove_cohort()
+    assert device.cohort_id == None
+
+    await device.refresh()
+    assert device.cohort_id == None

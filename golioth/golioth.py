@@ -398,6 +398,13 @@ class Device(ApiNodeMixin):
             return None
 
     @property
+    def cohort_id(self) -> str | None:
+        if 'cohortId' in self.info:
+            return self.info['cohortId']
+        else:
+            return None
+
+    @property
     def tags(self):
         return self.info['tagIds']
 
@@ -450,6 +457,31 @@ class Device(ApiNodeMixin):
             if response.status_code == 200:
                 if 'blueprintId' in response.json()['data']:
                     self.info['blueprintId'] = response.json()['data']['blueprintId']
+                return response.json()['data']
+            else:
+                raise ApiException(response.json()['message'])
+
+    async def update_cohort(self, cohort_id: str):
+        body = {
+           "cohortId": cohort_id,
+        }
+        async with self.http_client as c:
+            response = await c.patch(self.base_url, json=body)
+            if response.status_code == 200:
+                if 'cohortId' in response.json()['data']:
+                    self.info['cohortId'] = response.json()['data']['cohortId']
+                return response.json()['data']
+            else:
+                raise ApiException(response.json()['message'])
+
+    async def remove_cohort(self):
+        body = {
+           "cohortId": None
+        }
+        async with self.http_client as c:
+            response = await c.patch(self.base_url, json=body)
+            if response.status_code == 200:
+                self.info.pop('cohortId')
                 return response.json()['data']
             else:
                 raise ApiException(response.json()['message'])

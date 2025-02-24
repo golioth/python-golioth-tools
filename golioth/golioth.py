@@ -304,7 +304,10 @@ class Project(ApiNodeMixin):
                 if log in old_logs:
                     continue
 
-                yield log
+                try:
+                    yield log
+                except GeneratorExit as e:
+                    break
 
 
 class LogLevel(Enum):
@@ -582,7 +585,10 @@ class DeviceLightDB(ApiNodeMixin):
     async def iter(self, path: str, params: dict = {}) -> Iterable[LightDBMonitor.ValueType]:
         async with self.monitor(path, params) as monitor:
             while True:
-                yield await monitor.get()
+                try:
+                    yield await monitor.get()
+                except GeneratorExit as e:
+                    break
 
 
 class DeviceStream(ApiNodeMixin):
@@ -655,8 +661,10 @@ class DeviceStream(ApiNodeMixin):
     async def iter(self, params: dict = {}) -> Iterable[LightDBMonitor.ValueType]:
         async with self.monitor(params) as monitor:
             while True:
-                yield await monitor.get()
-
+                try:
+                    yield await monitor.get()
+                except GeneratorExit as e:
+                    break
 
 class DeviceRPC(ApiNodeMixin):
     def __init__(self, device: Device):

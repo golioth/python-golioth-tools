@@ -160,6 +160,9 @@ class Project(ApiNodeMixin):
         self.ota_events: ProjectOTAEvents = ProjectOTAEvents(self)
         self.tags: ProjectTags = ProjectTags(self)
 
+    def __repr__(self) -> str:
+        return f'Project <id={self.id}, organization={self.organization}>'
+
     @property
     def headers(self) -> Dict[str, str]:
         return self.client.headers

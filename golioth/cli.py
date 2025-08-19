@@ -1041,6 +1041,24 @@ async def delete(config, tag_id):
             sys.exit(1)
 
 
+@cli.group()
+def projects():
+    """Projects related commands."""
+    pass
+
+
+@projects.command()
+@pass_config
+async def list(config):
+    """List projects."""
+    with console.status('Getting projects...'):
+        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
+        projects = await client.get_projects()
+
+        for p in projects:
+            print(p)
+
+
 def main():
     cli(_anyio_backend='trio')
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from base64 import b64encode
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from enum import Enum, IntEnum
 import functools
 import json

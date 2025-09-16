@@ -339,7 +339,7 @@ class LogEntry:
 
     @property
     def datetime(self) -> datetime:
-        ts = re.sub('(\d{6})\d*Z$', '\g<1>+00:00', self.info['timestamp'])
+        ts = re.sub(r'(\d{6})\d*Z$', r'\g<1>+00:00', self.info['timestamp'])
         return datetime.fromisoformat(ts)
 
     @property

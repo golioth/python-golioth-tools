@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 from base64 import b64encode
-from contextlib import asynccontextmanager
 from datetime import datetime
 from enum import Enum, IntEnum
 import functools
 import json
 from pathlib import Path
 import re
-from typing import Any, Callable, Dict, Iterable, Literal, Optional, Union
+from typing import Any, Callable, Dict, Literal, Optional, Union
 
 import httpx
-from trio_websocket import open_websocket_url, WebSocketConnection
 
 
 class ApiException(RuntimeError):
@@ -144,54 +142,6 @@ class Client(ApiNodeMixin):
 
         raise ProjectNotFound(f'No project with name {name}')
 
-class LightDBMonitor:
-    ValueType = Union[str, int, float, bool, 'ValueType']
-
-    def __init__(self, ws: WebSocketConnection):
-        self.ws = ws
-
-    async def __anext__(self) -> LightDBMonitor.ValueType:
-        return await self.get()
-
-    async def get(self) -> LightDBMonitor.ValueType:
-        msg = await self.ws.get_message()
-        msg = json.loads(msg)
-
-        if 'error' in msg:
-            error = msg['error']
-            # REVISIT: Not sure error code should map to all RPCStatusCode values, but at least it
-            # matches PERMISSION_DENIED.
-            if error['code'] == RPCStatusCode.PERMISSION_DENIED.value:
-                raise Forbidden(error['message'])
-
-            raise ApiException(f"code={error['code']} message={error['message']}")
-
-        return msg['result']['data']
-
-
-class LogsMonitor:
-    def __init__(self, ws: WebSocketConnection):
-        self.ws = ws
-
-    async def __anext__(self) -> LogEntry:
-        return await self.get()
-
-    async def get(self) -> LogEntry:
-        msg = await self.ws.get_message()
-        msg = json.loads(msg)
-
-        if 'error' in msg:
-            error = msg['error']
-            # REVISIT: Not sure error code should map to all RPCStatusCode values, but at least it
-            # matches PERMISSION_DENIED.
-            if error['code'] == RPCStatusCode.PERMISSION_DENIED.value:
-                raise Forbidden(error['message'])
-
-            raise ApiException(f"code={error['code']} message={error['message']}")
-
-        log = LogEntry(msg['result']['data'])
-        return log
-
 
 class Project(ApiNodeMixin):
     def __init__(self, client: Client, info: dict[str, Any]):
@@ -271,43 +221,6 @@ class Project(ApiNodeMixin):
     async def get_logs(self, params: dict = {}) -> list[LogEntry]:
         resp = await self.get('logs', params=params)
         return [LogEntry(e) for e in reversed(resp.json()['list'])]
-
-    @asynccontextmanager
-    async def logs_websocket(self, params: dict = {}) -> WebSocketConnection:
-        async with open_websocket_url(f'{self.client.base_url.replace("http", "ws")}/ws/projects/{self.id}/logs',
-                                      extra_headers=[(k, v) for k, v in self.headers.items()]) as ws:
-            yield ws
-
-    @asynccontextmanager
-    async def logs_monitor(self, params: dict = {}) -> LogsMonitor:
-        async with self.logs_websocket(params) as ws:
-            yield LogsMonitor(ws)
-
-    async def logs_iter(self, lines: int = 0, params: dict = {}) -> Iterable[LogEntry]:
-        async with self.logs_monitor(params) as monitor:
-            old_logs = []
-
-            if lines != 0:
-                old_logs = await self.get_logs(params)
-
-                if lines > 0:
-                    old_logs = old_logs[-lines:]
-
-                for log in old_logs[-lines:]:
-                    yield log
-
-            # TODO: do not reprint logs from 'old_logs'
-
-            while True:
-                log = await monitor.get()
-
-                if log in old_logs:
-                    continue
-
-                try:
-                    yield log
-                except GeneratorExit as e:
-                    break
 
 
 class LogLevel(Enum):
@@ -426,17 +339,6 @@ class Device(ApiNodeMixin):
     async def get_logs(self, params: dict = {}) -> list[LogEntry]:
         params['deviceId'] = self.id
         return await self.project.get_logs(params=params)
-
-    @asynccontextmanager
-    async def logs_monitor(self, params: dict = {}) -> LogsMonitor:
-        params['deviceId'] = self.id
-        async with self.project.logs_websocket(params=params) as ws:
-            yield LogsMonitor(ws)
-
-    async def logs_iter(self, lines: int = 0, params: dict = {}) -> Iterable[LogEntry]:
-        params['deviceId'] = self.id
-        async for log in self.project.logs_iter(lines=lines, params=params):
-            yield log
 
     async def add_blueprint(self, blueprint_id: str):
         body = {
@@ -571,25 +473,6 @@ class DeviceLightDB(ApiNodeMixin):
         async with self.http_client as c:
             await c.delete(f'data/{path}')
 
-    @asynccontextmanager
-    async def websocket(self, path: str, params: dict = {}) -> WebSocketConnection:
-        async with open_websocket_url(f'{self.device.project.client.base_url.replace("http", "ws")}/ws/projects/{self.device.project.id}/devices/{self.device.id}/data/{path}',
-                                      extra_headers=[(k, v) for k, v in self.headers.items()]) as ws:
-            yield ws
-
-    @asynccontextmanager
-    async def monitor(self, path: str, params: dict = {}) -> LightDBMonitor:
-        async with self.websocket(path, params) as ws:
-            yield LightDBMonitor(ws)
-
-    async def iter(self, path: str, params: dict = {}) -> Iterable[LightDBMonitor.ValueType]:
-        async with self.monitor(path, params) as monitor:
-            while True:
-                try:
-                    yield await monitor.get()
-                except GeneratorExit as e:
-                    break
-
 
 class DeviceStream(ApiNodeMixin):
     ValueType = Union[str, int, float, bool, 'ValueType']
@@ -646,25 +529,6 @@ class DeviceStream(ApiNodeMixin):
     # async def set(self, path: str, value: ValueType) -> None:
         # async with self.http_client as c:
             # await c.post(f'stream/{path}', json=value)
-
-    @asynccontextmanager
-    async def websocket(self, params: dict = {}) -> WebSocketConnection:
-        async with open_websocket_url(f'{self.device.project.client.base_url.replace("http", "ws")}/ws/projects/{self.device.project.id}/devices/{self.device.id}/stream',
-                                      extra_headers=[(k, v) for k, v in self.headers.items()]) as ws:
-            yield ws
-
-    @asynccontextmanager
-    async def monitor(self, params: dict = {}) -> LightDBMonitor:
-        async with self.websocket(params) as ws:
-            yield LightDBMonitor(ws)
-
-    async def iter(self, params: dict = {}) -> Iterable[LightDBMonitor.ValueType]:
-        async with self.monitor(params) as monitor:
-            while True:
-                try:
-                    yield await monitor.get()
-                except GeneratorExit as e:
-                    break
 
 class DeviceRPC(ApiNodeMixin):
     def __init__(self, device: Device):

@@ -4,10 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "golioth"
-version = "0.7.0"
+version = "0.8.0"
 authors = [
     { name="Marcin Niestroj", email="m.niestroj@emb.dev" },
-    { name="Sam Friedman", email="sam@golioth.io" }
+    { name="Sam Friedman", email="sam@golioth.io" },
+    { name="Mike Szczys", email="mike@golioth.io" }
 ]
 description = "Golioth client Python library"
 license = "Apache-2.0"

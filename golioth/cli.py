@@ -472,47 +472,6 @@ async def delete(config, device_name, path):
         await device.lightdb.delete(path)
 
 
-@lightdb.command()
-@click.option('-d', '--device-name',
-              help='Name of device',
-              required=True)
-@click.argument('path')
-@pass_config
-async def monitor(config, device_name, path):
-    """Monitor LightDB State path."""
-    path = path.strip('/')
-
-    with console.status('Monitoring LightDB State path...'):
-        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
-        project = await Project.get_by_id(client, config.default_project)
-        device = await project.device_by_name(device_name)
-
-        async for value in device.lightdb.iter(path):
-            console.print(value)
-
-
-@cli.group()
-def stream():
-    """LightDB Stream related commands."""
-    pass
-
-
-@stream.command()
-@click.option('-d', '--device-name',
-              help='Name of device',
-              required=True)
-@pass_config
-async def monitor(config, device_name):
-    """Monitor LightDB Stream."""
-    with console.status('Monitoring LightDB Stream path...'):
-        client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
-        project = await Project.get_by_id(client, config.default_project)
-        device = await project.device_by_name(device_name)
-
-        async for value in device.stream.iter():
-            console.print(value)
-
-
 @cli.group()
 def certificate():
     """Certificates related commands."""
@@ -804,9 +763,6 @@ def print_log_zephyr(log: LogEntry):
 @logs.command()
 @click.option('-d', '--device-name',
               help='Name of device from which logs should be printed')
-@click.option('-f', '--follow',
-              help='Continuously print new entries as they are appended to the logging service',
-              is_flag=True)
 @click.option('-n', '--lines',
               help='Limit the number of log entries shows',
               type=int, default=20)
@@ -814,7 +770,7 @@ def print_log_zephyr(log: LogEntry):
               help='Format',
               type=click.Choice(['default', 'zephyr']))
 @pass_config
-async def tail(config, device_name, follow, lines, format):
+async def tail(config, device_name, lines, format):
     """Show the most recent log entries."""
     client = Client(api_url = config.api_url, api_key = config.api_key, access_token = config.access_token)
     project = await Project.get_by_id(client, config.default_project)
@@ -829,10 +785,6 @@ async def tail(config, device_name, follow, lines, format):
         print_log = print_log_zephyr
     else:
         print_log = print_log_default
-
-    if follow:
-        async for log in logs_provider.logs_iter(lines=lines):
-            print_log(log)
 
     logs = await logs_provider.get_logs()
     for log in logs[-lines:]:

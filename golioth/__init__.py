@@ -6,8 +6,6 @@ from .golioth import (
     RPCResultError,
     RPCTimeout,
     Client,
-    LightDBMonitor,
-    LogsMonitor,
     Project,
     LogLevel,
     LogEntry,

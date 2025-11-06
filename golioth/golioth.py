@@ -219,7 +219,7 @@ class Project(ApiNodeMixin):
         await self.delete_device(dev)
 
     async def get_logs(self, params: dict = {}) -> list[LogEntry]:
-        resp = await self.get('logs', params=params)
+        resp = await self.get('logs', params=params, timeout=10)
         return [LogEntry(e) for e in reversed(resp.json()['list'])]
 
 

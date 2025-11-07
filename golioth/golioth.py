@@ -88,7 +88,8 @@ class ApiNodeMixin:
     @property
     def http_client(self):
         return httpx.AsyncClient(base_url=self.base_url,
-                                 headers=self.headers)
+                                 headers=self.headers,
+                                 timeout=None)
 
     @check_resp
     async def get(self, *args, **kwargs):
@@ -219,7 +220,7 @@ class Project(ApiNodeMixin):
         await self.delete_device(dev)
 
     async def get_logs(self, params: dict = {}) -> list[LogEntry]:
-        resp = await self.get('logs', params=params, timeout=10)
+        resp = await self.get('logs', params=params)
         return [LogEntry(e) for e in reversed(resp.json()['list'])]
 
 

@@ -780,8 +780,10 @@ class ProjectArtifacts(ApiNodeMixin):
             'content': b64encode(path.open('rb').read()).decode(),
             'version': version,
             'package': package,
-            'blueprintId': blueprint_id
         }
+
+        if blueprint_id is not None:
+            json['blueprintId'] = blueprint_id
 
         try:
             response = await self.project.client.post('artifacts', json=json)

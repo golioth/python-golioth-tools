@@ -157,6 +157,7 @@ class Project(ApiNodeMixin):
         self.blueprints: ProjectBlueprints = ProjectBlueprints(self)
         self.cohorts: ProjectCohorts = ProjectCohorts(self)
         self.packages: ProjectPackages = ProjectPackages(self)
+        self.ota_events: ProjectOTAEvents = ProjectOTAEvents(self)
         self.tags: ProjectTags = ProjectTags(self)
 
     @property
@@ -1198,6 +1199,99 @@ class ProjectPackages(ApiNodeMixin):
 
         return Package(resp.json()['data'])
 
+
+class OTAEvent(ApiNodeMixin):
+    class Error(ApiException):
+        pass
+
+    class ErrMsgFromServer(Error):
+        pass
+
+    def __init__(self, info: dict[str, Any]):
+        self.info = info
+
+    @property
+    def deviceId(self) -> str:
+        return self.info['deviceId']
+
+    @property
+    def packageId(self) -> str:
+        return self.info['packageId']
+
+    @property
+    def eventType(self) -> str:
+        return self.info['eventType']
+
+    @property
+    def status(self) -> int:
+        return self.info['status']
+
+    @property
+    def message(self) -> int:
+        return self.info['message']
+
+    @property
+    def currentVersion(self) -> int:
+        return self.info['currentVersion']
+
+    @property
+    def targetVersion(self) -> int:
+        return self.info['targetVersion']
+
+    @property
+    def datetime(self) -> datetime:
+        ts = re.sub(r'(\d{6})\d*Z$', r'\g<1>+00:00', self.info['timestamp'])
+        return datetime.fromisoformat(ts)
+
+    def __repr__(self):
+        return (f'OTAEvent <packageId={self.packageId}, deviceId={self.deviceId}, ' +
+                f'eventType={self.eventType}, status={self.status}, ' +
+                f'currentVersion={self.currentVersion}, targetVersion={self.targetVersion}, ' +
+                f'message={self.message}, datetime={self.datetime}>')
+
+
+class ProjectOTAEvents(ApiNodeMixin):
+    def __init__(self, project: Project):
+        self.project = project
+        self.base_url = f'{self.project.base_url_with_org}/ota-events'
+
+    @property
+    def headers(self) -> Dict[str, str]:
+        return self.project.headers
+
+    async def get(self,
+                 cohortId: Optional[str] = None,
+                 packageId: Optional[str] = None,
+                 deviceId: Optional[str] = None,
+                 eventType: Optional[str] = None,
+                 status: Optional[int] = None,
+                 startTime: Optional[datetime] = None,
+                 endTime: Optional[datetime] = None,
+                 limit: Optional[int] = None,
+                 pageToken: Optional[str] = None) -> list[OTAEvent]:
+        params = {
+            'cohortId': cohortId,
+            'packageId': packageId,
+            'deviceId': deviceId,
+            'eventType': eventType,
+            'status': status,
+            'startTime': startTime.isoformat() if startTime is not None else None,
+            'endTime': endTime.isoformat() if endTime is not None else None,
+            'limit': limit,
+            'pageToken': pageToken,
+        }
+        params = {k: v for k, v in params.items() if v is not None}
+        try:
+            resp = await self.project.get(self.base_url, params=params, timeout=30)
+        except httpx.HTTPStatusError as err:
+            try:
+                msg = err.response.json()['message']
+            except (json.JSONDecodeError, KeyError):
+                msg = err.response.text
+            if msg != None and msg != "":
+                raise OTAEvent.ErrMsgFromServer(msg) from err
+            raise err
+        return [OTAEvent(oe) for oe in resp.json()['list']]
 
 class Blueprint(ApiNodeMixin):
     class Error(ApiException):

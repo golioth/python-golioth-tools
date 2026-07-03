@@ -47,6 +47,8 @@ def cli(config, config_path, api_key, api_url):
             config_dict = yaml.load(fp, yaml.SafeLoader)
             if 'accesstoken' in config_dict:
                 config.access_token = config_dict['accesstoken']
+            if 'apikey' in config_dict:
+                config.api_key = config_dict['apikey']
             if 'projectid' in config_dict:
                 config.default_project = config_dict['projectid']
             if 'apiurl' in config_dict:
